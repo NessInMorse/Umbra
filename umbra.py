@@ -231,7 +231,7 @@ def countWords(c_chatter):
                                 break
                 else:
                         print("")
-        #showCountWords(sortable_words,names)
+        showCountWords(sortable_words,names)
 
 def showCountWords(s_sortable_words,names):
         words = [[] for i in s_sortable_words]
@@ -281,7 +281,7 @@ def main():
                         print(messages[i])
         print(sum([i for i in messages.values()]))
         countWords(chatter)
-        #showMessageCount(messages)
+        showMessageCount(messages)
 
         end = time()
         print(end-begin)
