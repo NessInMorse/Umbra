@@ -1,10 +1,10 @@
 """
 Program to get data out of a whatsapp export file
         and show that data in form of various graphs
-version: 0.1
-                Not yet working streaks function,
-                currently only counts words and messages per person
-                        and shows these in graphs
+version: 0.2
+                Streaks function now works correctly,
+                        is yet unable to be determined
+                        which graph it fits with
 Author: Marc (NessInMorse)
 Date: 29 November 2020
 """
@@ -12,10 +12,11 @@ Date: 29 November 2020
 
 from re import split, findall, search
 from time import time, mktime
-from matplotlib.pyplot import bar,show,plot,subplot,title
+from matplotlib.pyplot import bar,show,plot,subplot,title,pie,legend
 from numpy import array
 
-def openFile(filename = ""):
+
+def openFile(filename = "vallie.txt"):
         """
         gives the key to open a file
         in: "Str" a filename
@@ -23,7 +24,10 @@ def openFile(filename = ""):
         """
         return open(filename,"r",encoding='utf-8')
 
-def getData(file, chatter={}, messages={}, streak={}, initiator=""):
+
+def getData(file, chatter={},
+            messages={},
+            streak={}, initiator="", start=""):
         """
         Gets all the data out of the text file such as:
                 all the names of the chatters with the counts
@@ -73,8 +77,8 @@ def getData(file, chatter={}, messages={}, streak={}, initiator=""):
                         messages = getMessage(messages,active)
                         if active:
                                 chatter = getWords(chatter,line,active)
-                                streak, initiator = getStreaks(line,
-                                                               streak,initiator)
+                                streak, initiator, start = getStreaks(line,
+                                                               streak,initiator,start,active)
         return chatter, messages, streak
 
 
@@ -88,7 +92,7 @@ def validate(line):
         """
         if len(line)>0:
                 if line[0] in "1234567890":
-                        if ":" in line and "-" in line:
+                        if ":" in line[14:] and "-" in line[14:]:
                                 return "OK"
         else:
                 return "NOT"
@@ -165,7 +169,7 @@ def getWords(chatter,line,active):
         return chatter
 
 
-def getStreaks(data, streak, init,maxpause=900):
+def getStreaks(data, streak, init, start="", user="",maxpause=900):
         """
         gets the streak of messages within a max time limit of pauses
         in: "Str" a line with the data in the form of a social media message
@@ -175,35 +179,41 @@ def getStreaks(data, streak, init,maxpause=900):
                         first message
                 (optional) _int_ the maximum amount of seconds a pause can
                                 lost before counting as a new start
+                                (minimum of 60 seconds or the program
+                                won't run correctly)
 
         out:
                 {dict} an altered streaks dictionary, with a new ending point
                         and length in the list
                 "Str" the initiator of the message
         """
-        maxpause = 15*60
         dates = ''.join(findall("[\d]+.[\d]+.[\d]+.[\d]+:[\d]+\s", data[:15]))
         if len(dates)>0:
                 split_character = search("\D",dates)[0]
-                
                 dates = dates.split(split_character)
                 # year, month, day, hour, minute, second, x, y, z
-                try:
-                        time_tuple = (int(dates[2][:2]),
-                                      int(dates[1]),
-                                      int(dates[0]),
-                                      int(dates[2][-6:-4]),
-                                      int(dates[2][-3:-1]),
-                                      0,
-                                      0,
-                                      0,
-                                      0)
-                except:
-                        print(data)
-                        print(dates)
+                current = (int("20" + dates[2][:2]),
+                                   int(dates[1]),
+                                   int(dates[0]),
+                                   int(dates[2][-6:-4]),
+                                   int(dates[2][-3:-1]),
+                                   0,
+                                   0,
+                                   0,
+                                   0)
+                current_time = data[:14]
 
-
-        return streak, init
+                if streak == {}:
+                        start = data[:14]
+                        streak[start] = [current,current,current_time,1,user]
+                elif (mktime(current)-mktime(streak[start][1])) < maxpause:
+                        streak[start][1] = current
+                        streak[start][2] = current_time
+                        streak[start][3] += 1
+                else:
+                        start = data[:14]
+                        streak[start] = [current,current,current_time,1,user]
+        return streak, init, start
 
 
 def countWords(c_chatter):
@@ -231,7 +241,8 @@ def countWords(c_chatter):
                                 break
                 else:
                         print("")
-        showCountWords(sortable_words,names)
+        return sortable_words, names
+        
 
 def showCountWords(s_sortable_words,names):
         words = [[] for i in s_sortable_words]
@@ -266,8 +277,9 @@ def showMessageCount(messages):
         """
         x = [i for i in messages.keys()  if messages[i]>500]
         y = [i for i in messages.values()if i>500]
-        bar(x,y)
+        pie(y, labels = x)
         title("Messagecount")
+        legend(title = "Relative Message Count")
         show()
 
 
@@ -276,11 +288,13 @@ def main():
         file = openFile()
         chatter, messages, streak = getData(file)
         names = [i for i in chatter.keys()]
+        print(sorted(streak.items(), key = lambda kv:(kv[1][3], kv[0]), reverse=True)) 
         for i in names:
                 if messages[i]>500:
                         print(messages[i])
         print(sum([i for i in messages.values()]))
-        countWords(chatter)
+        sortable_words, names = countWords(chatter)
+        showCountWords(sortable_words,names)
         showMessageCount(messages)
 
         end = time()
