@@ -1,12 +1,10 @@
 """
 Program to get data out of a whatsapp export file
         and show that data in form of various graphs
-version: 0.2
-                Streaks function now works correctly,
-                        is yet unable to be determined
-                        which graph it fits with
+version: 0.3
+                Streaks plot added
 Author: Marc (NessInMorse)
-Date: 29 November 2020
+Date: 30 November 2020
 """
 
 
@@ -16,7 +14,7 @@ from matplotlib.pyplot import bar,show,plot,subplot,title,pie,legend
 from numpy import array
 
 
-def openFile(filename = "vallie.txt"):
+def openFile(filename = ""):
         """
         gives the key to open a file
         in: "Str" a filename
@@ -283,12 +281,21 @@ def showMessageCount(messages):
         show()
 
 
+def showStreaks(streak):
+        streak = sorted(streak.items(), key = lambda kv:(kv[1][3], kv[0]), reverse=True)
+        print(len(streak))
+        x = [f"{i[0]}-{i[1][2]}" for i in streak[:15]]
+        y = [int(i[1][3]) for i in streak[:15]]
+        plot(x,y)
+        title("Streak and their counts")
+        show()
+
 def main():
         begin = time()
         file = openFile()
         chatter, messages, streak = getData(file)
         names = [i for i in chatter.keys()]
-        print(sorted(streak.items(), key = lambda kv:(kv[1][3], kv[0]), reverse=True)) 
+
         for i in names:
                 if messages[i]>500:
                         print(messages[i])
@@ -296,7 +303,7 @@ def main():
         sortable_words, names = countWords(chatter)
         showCountWords(sortable_words,names)
         showMessageCount(messages)
-
+        showStreaks(streak)
         end = time()
         print(end-begin)
         
